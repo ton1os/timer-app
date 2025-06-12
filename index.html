@@ -67,21 +67,21 @@
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
 
-    <div id="app-container" class="w-full max-w-md mx-auto bg-gray-800 rounded-3xl shadow-2xl p-6 md:p-8 space-y-6">
+    <div id="app-container" class="w-full max-w-md mx-auto bg-gray-800 rounded-3xl shadow-2xl p-4 sm:p-6 space-y-4">
         
         <!-- ✨ Funzionalità Gemini API ✨ -->
-        <div class="space-y-4">
+        <div class="space-y-3">
             <h2 class="text-xl font-bold text-center text-teal-400">Pianificatore di Focus</h2>
             <div class="flex items-center space-x-2">
                 <input type="text" id="task-input" placeholder="In cosa vuoi concentrarti?" class="flex-grow bg-gray-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-teal-400">
-                <button id="gemini-btn" class="btn bg-teal-500 hover:bg-teal-600 rounded-lg p-3 flex items-center justify-center h-12 w-12">
+                <button id="gemini-btn" class="btn bg-teal-500 hover:bg-teal-600 rounded-lg p-3 flex items-center justify-center h-12 w-12 flex-shrink-0">
                     <span id="gemini-btn-icon">✨</span>
                     <div id="gemini-loader" class="loader hidden"></div>
                 </button>
             </div>
             <div id="session-plan-container" class="hidden space-y-2">
                 <h3 class="font-bold text-gray-400">Il tuo piano:</h3>
-                <div id="session-plan" class="bg-gray-900/50 rounded-lg p-3 max-h-40 overflow-y-auto"></div>
+                <div id="session-plan" class="bg-gray-900/50 rounded-lg p-3 max-h-32 sm:max-h-40 overflow-y-auto"></div>
             </div>
         </div>
 
@@ -89,25 +89,25 @@
         <div class="border-b border-gray-700"></div>
 
         <!-- Display del Timer -->
-        <div class="relative w-64 h-64 mx-auto mt-4">
+        <div class="relative w-56 h-56 sm:w-64 sm:h-64 mx-auto">
              <div id="current-task-label" class="absolute -top-4 w-full text-center text-teal-300 font-semibold truncate px-4"></div>
             <svg class="w-full h-full" viewBox="0 0 120 120">
                 <circle class="text-gray-700" stroke-width="8" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60" />
                 <circle id="progress-ring" class="progress-ring-circle text-teal-400" stroke-width="8" stroke-linecap="round" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60"/>
             </svg>
-            <div id="time-display" class="absolute inset-0 flex items-center justify-center text-5xl font-black tracking-tighter">
+            <div id="time-display" class="absolute inset-0 flex items-center justify-center text-4xl sm:text-5xl font-black tracking-tighter">
                 00:00:00
             </div>
         </div>
         
         <!-- Impostazione Manuale del Tempo -->
-        <div class="space-y-4 pt-4">
+        <div class="space-y-3 pt-2">
             <div id="manual-setup" class="flex justify-center items-center space-x-2">
-                 <input type="number" id="hours" placeholder="HH" min="0" max="99" class="w-20 text-center bg-gray-700 rounded-lg p-2 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-teal-400">
+                 <input type="number" id="hours" placeholder="HH" min="0" max="99" class="w-full text-center bg-gray-700 rounded-lg p-2 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-teal-400">
                  <span class="text-xl font-bold text-gray-500">:</span>
-                 <input type="number" id="minutes" placeholder="MM" min="0" max="59" class="w-20 text-center bg-gray-700 rounded-lg p-2 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-teal-400">
+                 <input type="number" id="minutes" placeholder="MM" min="0" max="59" class="w-full text-center bg-gray-700 rounded-lg p-2 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-teal-400">
                  <span class="text-xl font-bold text-gray-500">:</span>
-                 <input type="number" id="seconds" placeholder="SS" min="0" max="59" class="w-20 text-center bg-gray-700 rounded-lg p-2 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-teal-400">
+                 <input type="number" id="seconds" placeholder="SS" min="0" max="59" class="w-full text-center bg-gray-700 rounded-lg p-2 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-teal-400">
             </div>
 
             <!-- Pulsanti Preimpostati -->
@@ -122,10 +122,10 @@
         <div id="message-box" class="text-center text-red-400 h-5"></div>
 
         <!-- Controlli Principali -->
-        <div class="flex justify-center space-x-4">
-            <button id="start-btn" class="btn w-32 bg-teal-500 hover:bg-teal-600 text-gray-900 font-bold py-3 px-4 rounded-lg text-lg">Avvia</button>
-            <button id="pause-btn" class="btn w-32 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold py-3 px-4 rounded-lg text-lg hidden">Pausa</button>
-            <button id="reset-btn" class="btn w-32 bg-red-500 hover:bg-red-600 text-gray-900 font-bold py-3 px-4 rounded-lg text-lg">Reset</button>
+        <div class="flex flex-col sm:flex-row sm:justify-center items-center gap-3">
+            <button id="start-btn" class="btn w-full sm:w-32 bg-teal-500 hover:bg-teal-600 text-gray-900 font-bold py-3 px-4 rounded-lg text-lg">Avvia</button>
+            <button id="pause-btn" class="btn w-full sm:w-32 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold py-3 px-4 rounded-lg text-lg hidden">Pausa</button>
+            <button id="reset-btn" class="btn w-full sm:w-32 bg-red-500 hover:bg-red-600 text-gray-900 font-bold py-3 px-4 rounded-lg text-lg">Reset</button>
         </div>
 
     </div>
@@ -180,7 +180,6 @@
                 tickSynth = new Tone.MembraneSynth({ octaves: 4, pitchDecay: 0.1, envelope: { attack: 0.001, decay: 0.2, sustain: 0 } }).toDestination();
                 sessionSynth = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.5 } }).toDestination();
                 
-                // Crea il synth e il loop per l'allarme
                 const alarmSynth = new Tone.FMSynth({
                     harmonicity: 1.5,
                     modulationIndex: 10,
@@ -300,7 +299,6 @@
                 clearInterval(timerInterval);
                 timerInterval = null;
                 
-                // Se c'è un piano, passa al prossimo step. Altrimenti, attiva l'allarme persistente.
                 if (sessionPlan.length > 0 && currentPlanIndex < sessionPlan.length - 1) {
                     setTimeout(startNextInSession, 1000);
                 } else {
@@ -336,8 +334,8 @@
         }
 
         function updateButtonStates(state) {
-            startBtn.classList.toggle('hidden', state === 'running');
-            pauseBtn.classList.toggle('hidden', state !== 'running');
+            startBtn.classList.toggle('hidden', state === 'running' || isAlarmPlaying);
+            pauseBtn.classList.toggle('hidden', state !== 'running' || isAlarmPlaying);
         }
         
         function startTimer() {
@@ -345,7 +343,7 @@
 
             if (isPaused) {
                 isPaused = false;
-            } else { // Se non è in pausa, stiamo iniziando una nuova sessione
+            } else { 
                 if (sessionPlan.length > 0 && currentPlanIndex === -1) {
                     startNextInSession();
                     return; 
@@ -392,7 +390,6 @@
         }
         
         function resetTimer(resetFull = true) {
-            // Ferma l'allarme se è attivo
             if (isAlarmPlaying) {
                 alarmLoop.stop();
                 if (Tone.Transport.state === 'started') Tone.Transport.stop();
