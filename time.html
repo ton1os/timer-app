@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer Avanzato con AI</title>
+    
+    <!-- Tailwind CSS per uno stile moderno e reattivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tone.js per la generazione di suoni -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        /* Stile base del corpo */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent; /* Rimuove il flash blu al tocco su mobile */
+        }
+        #app-container {
+            transition: background-color 0.4s ease-in-out;
+        }
+        /* Stile per gli input numerici per nascondere le frecce */
+        input[type='number']::-webkit-inner-spin-button,
+        input[type='number']::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type='number'] {
+            -moz-appearance: textfield;
+        }
+        /* Transizioni fluide per i pulsanti */
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:active {
+            transform: scale(0.95);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        /* Stile per il cerchio di progresso */
+        .progress-ring-circle {
+            transition: stroke-dashoffset 1s linear;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        /* Stile per lo spinner di caricamento */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div id="app-container" class="w-full max-w-md mx-auto bg-gray-800 rounded-3xl shadow-2xl p-6 md:p-8 space-y-6">
+        
+        <!-- ✨ Funzionalità Gemini API ✨ -->
+        <div class="space-y-4">
+            <h2 class="text-xl font-bold text-center text-teal-400">Pianificatore di Focus</h2>
+            <div class="flex items-center space-x-2">
+                <input type="text" id="task-input" placeholder="In cosa vuoi concentrarti?" class="flex-grow bg-gray-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-teal-400">
+                <button id="gemini-btn" class="btn bg-teal-500 hover:bg-teal-600 rounded-lg p-3 flex items-center justify-center h-12 w-12">
+                    <span id="gemini-btn-icon">✨</span>
+                    <div id="gemini-loader" class="loader hidden"></div>
+                </button>
+            </div>
+            <div id="session-plan-container" class="hidden space-y-2">
+                <h3 class="font-bold text-gray-400">Il tuo piano:</h3>
+                <div id="session-plan" class="bg-gray-900/50 rounded-lg p-3 max-h-40 overflow-y-auto"></div>
+            </div>
+        </div>
+
+        <!-- Divisore -->
+        <div class="border-b border-gray-700"></div>
+
+        <!-- Display del Timer -->
+        <div class="relative w-64 h-64 mx-auto mt-4">
+             <div id="current-task-label" class="absolute -top-4 w-full text-center text-teal-300 font-semibold truncate px-4"></div>
+            <svg class="w-full h-full" viewBox="0 0 120 120">
+                <circle class="text-gray-700" stroke-width="8" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60" />
+                <circle id="progress-ring" class="progress-ring-circle text-teal-400" stroke-width="8" stroke-linecap="round" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60"/>
+            </svg>
+            <div id="time-display" class="absolute inset-0 flex items-center justify-center text-5xl font-black tracking-tighter">
+                00:00:00
+            </div>
+        </div>
+        
+        <!-- Impostazione Manuale del Tempo -->
+        <div class="space-y-4 pt-4">
+            <div id="manual-setup" class="flex justify-center items-center space-x-2">
+                 <input type="number" id="hours" placeholder="HH" min="0" max="99" class="w-20 text-center bg-gray-700 rounded-lg p-2 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-teal-400">
+                 <span class="text-xl font-bold text-gray-500">:</span>
+                 <input type="number" id="minutes" placeholder="MM" min="0" max="59" class="w-20 text-center bg-gray-700 rounded-lg p-2 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-teal-400">
+                 <span class="text-xl font-bold text-gray-500">:</span>
+                 <input type="number" id="seconds" placeholder="SS" min="0" max="59" class="w-20 text-center bg-gray-700 rounded-lg p-2 text-xl font-bold focus:outline-none focus:ring-2 focus:ring-teal-400">
+            </div>
+
+            <!-- Pulsanti Preimpostati -->
+            <div id="preset-buttons" class="grid grid-cols-3 gap-3">
+                 <button data-time="300" class="btn preset-btn bg-gray-700 hover:bg-gray-600 rounded-lg p-2 font-bold">5 min</button>
+                 <button data-time="600" class="btn preset-btn bg-gray-700 hover:bg-gray-600 rounded-lg p-2 font-bold">10 min</button>
+                 <button data-time="900" class="btn preset-btn bg-gray-700 hover:bg-gray-600 rounded-lg p-2 font-bold">15 min</button>
+            </div>
+        </div>
+
+        <!-- Messaggio di Errore/Notifica -->
+        <div id="message-box" class="text-center text-red-400 h-5"></div>
+
+        <!-- Controlli Principali -->
+        <div class="flex justify-center space-x-4">
+            <button id="start-btn" class="btn w-32 bg-teal-500 hover:bg-teal-600 text-gray-900 font-bold py-3 px-4 rounded-lg text-lg">Avvia</button>
+            <button id="pause-btn" class="btn w-32 bg-amber-500 hover:bg-amber-600 text-gray-900 font-bold py-3 px-4 rounded-lg text-lg hidden">Pausa</button>
+            <button id="reset-btn" class="btn w-32 bg-red-500 hover:bg-red-600 text-gray-900 font-bold py-3 px-4 rounded-lg text-lg">Reset</button>
+        </div>
+
+    </div>
+
+    <script>
+        // Riferimenti agli elementi del DOM
+        const appContainer = document.getElementById('app-container');
+        const timeDisplay = document.getElementById('time-display');
+        const startBtn = document.getElementById('start-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const messageBox = document.getElementById('message-box');
+        
+        const progressRing = document.getElementById('progress-ring');
+        const radius = progressRing.r.baseVal.value;
+        const circumference = 2 * Math.PI * radius;
+        progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
+        
+        // Elementi Gemini e UI
+        const taskInput = document.getElementById('task-input');
+        const geminiBtn = document.getElementById('gemini-btn');
+        const geminiBtnIcon = document.getElementById('gemini-btn-icon');
+        const geminiLoader = document.getElementById('gemini-loader');
+        const sessionPlanContainer = document.getElementById('session-plan-container');
+        const sessionPlanEl = document.getElementById('session-plan');
+        const currentTaskLabel = document.getElementById('current-task-label');
+
+        // Elementi input manuale
+        const hoursInput = document.getElementById('hours');
+        const minutesInput = document.getElementById('minutes');
+        const secondsInput = document.getElementById('seconds');
+        const presetButtons = document.querySelectorAll('.preset-btn');
+
+        // Variabili di stato
+        let timerInterval = null;
+        let totalSeconds = 0;
+        let secondsRemaining = 0;
+        let isPaused = false;
+        let sessionPlan = [];
+        let currentPlanIndex = -1;
+        let isAlarmPlaying = false;
+        let alarmFlashInterval = null;
+
+        // --- Gestione Audio con Tone.js ---
+        let soundsReady = false;
+        let tickSynth, sessionSynth, alarmLoop;
+
+        async function setupSounds() {
+            if (soundsReady) return;
+            try {
+                await Tone.start();
+                tickSynth = new Tone.MembraneSynth({ octaves: 4, pitchDecay: 0.1, envelope: { attack: 0.001, decay: 0.2, sustain: 0 } }).toDestination();
+                sessionSynth = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.5 } }).toDestination();
+                
+                // Crea il synth e il loop per l'allarme
+                const alarmSynth = new Tone.FMSynth({
+                    harmonicity: 1.5,
+                    modulationIndex: 10,
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 },
+                }).toDestination();
+                
+                alarmLoop = new Tone.Loop(time => {
+                    alarmSynth.triggerAttackRelease("A4", "8n", time);
+                }, "4n");
+
+                soundsReady = true;
+                console.log("Suoni pronti.");
+            } catch (error) {
+                console.error("Errore nell'inizializzazione dell'audio:", error);
+                displayMessage("Impossibile avviare l'audio.");
+            }
+        }
+
+        function playTickSound() { if (soundsReady) tickSynth.triggerAttackRelease("C2", "8n", Tone.now()); }
+        function playNextTaskSound() { if (soundsReady) { const now = Tone.now(); sessionSynth.triggerAttackRelease("A4", "16n", now); sessionSynth.triggerAttackRelease("E5", "16n", now + 0.1); } }
+
+        // --- Logica Gemini API ---
+        geminiBtn.addEventListener('click', async () => {
+            const task = taskInput.value.trim();
+            if (!task) {
+                displayMessage("Inserisci un'attività prima.");
+                return;
+            }
+            toggleLoader(true);
+            const prompt = `Sei un esperto di produttività. Un utente vuole concentrarsi su questa attività: "${task}". Suddividi questa attività in una sequenza di intervalli di lavoro mirato ('focus') e brevi pause ('break'). Fornisci la risposta come un array JSON di oggetti. Ogni oggetto deve avere 'label' (un'etichetta breve e motivante in italiano), 'duration' (in minuti) e 'type' ('focus' o 'break'). Il primo intervallo deve sempre essere di tipo 'focus'. Crea un piano di 3-5 passaggi.`;
+            try {
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: { "label": { "type": "STRING" }, "duration": { "type": "NUMBER" }, "type": { "type": "STRING", "enum": ["focus", "break"] } },
+                                required: ["label", "duration", "type"]
+                            }
+                        }
+                    }
+                };
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`Errore API: ${response.statusText}`);
+                const result = await response.json();
+                if (result.candidates && result.candidates[0].content.parts[0].text) {
+                    sessionPlan = JSON.parse(result.candidates[0].content.parts[0].text);
+                    renderSessionPlan();
+                    resetTimer(false); 
+                    startBtn.textContent = "Avvia Sessione";
+                } else {
+                    throw new Error("La risposta dell'API non è valida.");
+                }
+            } catch (error) {
+                console.error("Errore chiamata Gemini:", error);
+                displayMessage("Errore nel creare il piano. Riprova.");
+                sessionPlan = [];
+                renderSessionPlan();
+            } finally {
+                toggleLoader(false);
+            }
+        });
+        
+        function toggleLoader(isLoading) {
+            geminiBtnIcon.classList.toggle('hidden', isLoading);
+            geminiLoader.classList.toggle('hidden', !isLoading);
+            geminiBtn.disabled = isLoading;
+        }
+        
+        function renderSessionPlan() {
+            sessionPlanEl.innerHTML = '';
+            if (sessionPlan.length > 0) {
+                sessionPlan.forEach((item, index) => {
+                    const itemEl = document.createElement('div');
+                    itemEl.id = `plan-item-${index}`;
+                    itemEl.className = `flex justify-between items-center p-2 rounded-md transition-colors duration-300 ${item.type === 'focus' ? 'text-teal-300' : 'text-amber-300'}`;
+                    itemEl.innerHTML = `<span>${item.label}</span><span class="font-bold">${item.duration} min</span>`;
+                    sessionPlanEl.appendChild(itemEl);
+                });
+                sessionPlanContainer.classList.remove('hidden');
+            } else {
+                sessionPlanContainer.classList.add('hidden');
+            }
+        }
+        
+        function highlightCurrentTask() {
+            document.querySelectorAll('[id^="plan-item-"]').forEach(el => el.classList.remove('bg-teal-500/30'));
+            if(currentPlanIndex >= 0 && currentPlanIndex < sessionPlan.length) {
+                const currentEl = document.getElementById(`plan-item-${currentPlanIndex}`);
+                if(currentEl) currentEl.classList.add('bg-teal-500/30');
+            }
+        }
+
+        // --- Logica del Timer e Allarme ---
+
+        function updateDisplay() {
+            const h = Math.floor(secondsRemaining / 3600);
+            const m = Math.floor((secondsRemaining % 3600) / 60);
+            const s = secondsRemaining % 60;
+            timeDisplay.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            const progress = totalSeconds > 0 ? (totalSeconds - secondsRemaining) / totalSeconds : 0;
+            progressRing.style.strokeDashoffset = circumference - (progress * circumference);
+        }
+
+        function tick() {
+            if (secondsRemaining > 0) {
+                secondsRemaining--;
+                playTickSound();
+                updateDisplay();
+            } else {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                
+                // Se c'è un piano, passa al prossimo step. Altrimenti, attiva l'allarme persistente.
+                if (sessionPlan.length > 0 && currentPlanIndex < sessionPlan.length - 1) {
+                    setTimeout(startNextInSession, 1000);
+                } else {
+                    triggerAlarm();
+                }
+            }
+        }
+        
+        function triggerAlarm() {
+            if (Tone.Transport.state !== 'started') Tone.Transport.start();
+            alarmLoop.start(0);
+            isAlarmPlaying = true;
+            
+            // UI in modalità allarme
+            currentTaskLabel.textContent = "Tempo Scaduto!";
+            startBtn.classList.add('hidden');
+            pauseBtn.classList.add('hidden');
+            resetBtn.textContent = "Ferma Allarme";
+            alarmFlashInterval = setInterval(() => {
+                appContainer.classList.toggle('bg-red-800');
+                appContainer.classList.toggle('bg-gray-800');
+            }, 500);
+        }
+
+        function setTimer(secs, label = "") {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            totalSeconds = secs;
+            secondsRemaining = secs;
+            currentTaskLabel.textContent = label;
+            updateDisplay();
+            updateButtonStates('ready');
+        }
+
+        function updateButtonStates(state) {
+            startBtn.classList.toggle('hidden', state === 'running');
+            pauseBtn.classList.toggle('hidden', state !== 'running');
+        }
+        
+        function startTimer() {
+            setupSounds();
+
+            if (isPaused) {
+                isPaused = false;
+            } else { // Se non è in pausa, stiamo iniziando una nuova sessione
+                if (sessionPlan.length > 0 && currentPlanIndex === -1) {
+                    startNextInSession();
+                    return; 
+                }
+                
+                if (secondsRemaining <= 0) {
+                    const h = parseInt(hoursInput.value) || 0;
+                    const m = parseInt(minutesInput.value) || 0;
+                    const s = parseInt(secondsInput.value) || 0;
+                    const timeInSeconds = (h * 3600) + (m * 60) + s;
+
+                    if (timeInSeconds > 0) {
+                        setTimer(timeInSeconds, "Timer Manuale");
+                    } else {
+                        displayMessage("Imposta una durata per il timer.");
+                        return;
+                    }
+                }
+            }
+            
+            clearInterval(timerInterval);
+            timerInterval = setInterval(tick, 1000);
+            updateButtonStates('running');
+        }
+        
+        function startNextInSession() {
+            currentPlanIndex++;
+            if (currentPlanIndex < sessionPlan.length) {
+                const nextTask = sessionPlan[currentPlanIndex];
+                playNextTaskSound();
+                setTimer(nextTask.duration * 60, nextTask.label);
+                highlightCurrentTask();
+                startTimer();
+            } else {
+                currentTaskLabel.textContent = "Sessione Completata!";
+                triggerAlarm();
+            }
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            isPaused = true;
+            updateButtonStates('paused');
+        }
+        
+        function resetTimer(resetFull = true) {
+            // Ferma l'allarme se è attivo
+            if (isAlarmPlaying) {
+                alarmLoop.stop();
+                if (Tone.Transport.state === 'started') Tone.Transport.stop();
+                isAlarmPlaying = false;
+                clearInterval(alarmFlashInterval);
+                appContainer.classList.remove('bg-red-800');
+                appContainer.classList.add('bg-gray-800');
+                resetBtn.textContent = "Reset";
+            }
+            
+            clearInterval(timerInterval);
+            timerInterval = null;
+            totalSeconds = 0;
+            secondsRemaining = 0;
+            isPaused = false;
+            currentTaskLabel.textContent = "";
+            
+            if (resetFull) {
+                taskInput.value = '';
+                hoursInput.value = '';
+                minutesInput.value = '';
+                secondsInput.value = '';
+                sessionPlan = [];
+                currentPlanIndex = -1;
+                renderSessionPlan();
+                startBtn.textContent = "Avvia";
+            }
+            
+            updateDisplay();
+            progressRing.style.strokeDashoffset = circumference;
+            updateButtonStates('initial');
+            highlightCurrentTask();
+        }
+
+        function displayMessage(msg, duration = 3000) {
+            messageBox.textContent = msg;
+            setTimeout(() => { messageBox.textContent = ''}, duration);
+        }
+        
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startTimer);
+        pauseBtn.addEventListener('click', pauseTimer);
+        resetBtn.addEventListener('click', () => {
+             setupSounds();
+             resetTimer(true);
+        });
+
+        presetButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                setupSounds();
+                resetTimer(true);
+                const time = parseInt(button.dataset.time, 10);
+                setTimer(time, "Timer Manuale");
+            });
+        });
+
+        // Stato iniziale
+        window.onload = () => resetTimer(true);
+
+    </script>
+</body>
+</html>
